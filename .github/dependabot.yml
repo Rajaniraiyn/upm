@@ -14,3 +14,13 @@ updates:
     labels:
       - "dependabot"
       - "dependencies"
+
+    - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "⬆️"
+    labels:
+      - "dependabot"
+      - "dependencies"
