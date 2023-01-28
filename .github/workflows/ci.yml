@@ -1,39 +1,89 @@
-name: Rust
-
-
+name: build
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
+    paths:
+      - 'Cargo.lock'
+      - 'Cargo.toml'
+      - 'src/**'
 
-env:
-  CARGO_TERM_COLOR: always
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'Cargo.lock'
+      - 'Cargo.toml'
+      - 'src/**'
 
 jobs:
-
-  build:
+  build-and-test:
+    name: ${{ matrix.name }}
 
     runs-on: ${{ matrix.os }}
+
     strategy:
+      fail-fast: false
       matrix:
-        os:
+        os: 
           - ubuntu-latest
-          - windows-latest
           - macos-latest
+          - windows-latest
+        include:
+          - os: ubuntu-latest
+            name: Linux Binary 64-Bit
+            target: x86_64-unknown-linux-musl
+
+          - os: macos-latest
+            name: MacOS Binary 64-Bit
+            target: x86_64-apple-darwin
+            target2: aarch64-apple-darwin
+
+          - os: windows-latest
+            name: Windows Binary 64-Bit
+            target: x86_64-pc-windows-msvc
 
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Build
-      run: cargo build --verbose
-      
-    - name: Run tests
-      run: cargo test --verbose
-      
-    - name: Cache
-      uses: actions/cache@v3.2.3
-      with:
-        path: "target"
-        key: "build-artifacts-cace"
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Add rustup default target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Add rustup Apple ARM64 target
+        if: ${{ matrix.os == 'macos-latest' }}
+        run: rustup target add ${{ matrix.target2 }}
+
+      - name: Install apt packages
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: sudo apt-get install musl-tools libssl-dev
+
+      # needed to fix file corruption of cache
+      # https://github.com/actions/cache/issues/403
+      - name: Install GNU tar
+        if: ${{ matrix.os == 'macos-latest' }}
+        run: |
+          brew install gnu-tar
+          echo "/usr/local/opt/gnu-tar/libexec/gnubin" >> $GITHUB_PATH
+
+      - name: Store or retrieve cargo caches
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build default target in debug mode
+        run: cargo build --target ${{ matrix.target }} --locked
+
+      - name: Build Apple ARM64 target in debug mode
+        if: ${{ matrix.os == 'macos-latest' }}
+        run: cargo build --target ${{ matrix.target2 }} --locked
+
+      - name: Test default target in debug mode
+        run: cargo test --target ${{ matrix.target }}
