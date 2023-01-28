@@ -37,7 +37,7 @@ fn from_lock_file() -> Result<String, Box<dyn Error>> {
         "pnpm"
     } else if file_exists("bun.lockb") {
         "bun"
-    } else if file_exists("pyproject.toml") {
+    } else if file_exists("poetry.lock") {
         "poetry"
     } else if file_exists("requirements.txt") {
         "pip"
