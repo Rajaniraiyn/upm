@@ -12,7 +12,7 @@ linux_use_terminal = true
 
 [dependencies]
 colored = "2.0.0"
-inquire = "0.6.1"
+inquire = "0.6.2"
 serde_json = "1.0.96"
 serde = "1.0.162"
 
